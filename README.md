@@ -125,7 +125,7 @@ void loop () {
 **Only CAN3 supports CANFD.**
 
 
-The driver supports many arbitration bit rates, as standard 62.5 kbit/s, 125 kbit/s, 250 kbit/s, 500 kbit/s, and 1 Mbit/s. The data bit rate is expressed by a multiplative factor from arbitration bit rate: for example ``DATA_BITRATE_x4`. An efficient CAN bit timing calculator finds settings for them, but also for exotic bit arbitration rates as 833 kbit/s. If the wished bit rate cannot be achieved, the `beginFD` method does not configure the hardware and returns an error code.
+The driver supports many arbitration bit rates, as standard 62.5 kbit/s, 125 kbit/s, 250 kbit/s, 500 kbit/s, and 1 Mbit/s. The data bit rate is expressed by a multiplative factor from arbitration bit rate: for example `DATA_BITRATE_x4`. An efficient CAN bit timing calculator finds settings for them, but also for exotic bit arbitration rates as 833 kbit/s. If the wished bit rate cannot be achieved, the `beginFD` method does not configure the hardware and returns an error code.
 
 > Driver API is fully described by the PDF file in the `extras` directory.
 
