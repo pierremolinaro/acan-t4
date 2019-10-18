@@ -1,0 +1,33 @@
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+ACAN_T4_Settings	KEYWORD1
+ACAN_T4FD_Settings	KEYWORD1
+CANMessage	KEYWORD1
+CANFDMessage	KEYWORD1
+ACANPrimaryFilter	KEYWORD1
+ACANSecondaryFilter	KEYWORD1
+ACANFDFilter	KEYWORD1
+ACAN_T4	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+begin	KEYWORD2
+beginFD	KEYWORD2
+end	KEYWORD2
+tryToSend	KEYWORD2
+tryToSendFD	KEYWORD2
+available	KEYWORD2
+availableFD	KEYWORD2
+receive	KEYWORD2
+receiveFD	KEYWORD2
+dispatchReceivedMessage	KEYWORD2
+dispatchReceivedMessageFD	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
