@@ -9,7 +9,7 @@
 
 //----------------------------------------------------------------------------------------------------------------------
 
-#include <stdint.h>
+#include "ACANFD_DataBitRateFactor.h"
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -38,19 +38,6 @@ class ACAN_T4FD_Settings {
     IMPEDANCE_R0_DIVIDED_BY_6 = 6,
     IMPEDANCE_R0_DIVIDED_BY_7 = 7
   } TxPinOutputBufferImpedance ;
-
-//······················································································································
-
-  public: typedef enum : uint8_t {
-    DATA_BITRATE_x1 = 1,
-    DATA_BITRATE_x2 = 2,
-    DATA_BITRATE_x3 = 3,
-    DATA_BITRATE_x4 = 4,
-    DATA_BITRATE_x5 = 5,
-    DATA_BITRATE_x6 = 6,
-    DATA_BITRATE_x7 = 7,
-    DATA_BITRATE_x8 = 8
-  } DataBitRateFactor ;
 
 //······················································································································
 

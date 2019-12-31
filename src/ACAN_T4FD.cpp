@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------------------------------------------------------
 // A Teensy 4.0 CANFD driver for FLEXCAN3
 // by Pierre Molinaro
-// https://github.com/pierremolinaro/ACAN_T4
+// https://github.com/pierremolinaro/acan-t4
 //
 //----------------------------------------------------------------------------------------------------------------------
 //  Teensy 4.0 FlexCAN pins
@@ -18,23 +18,23 @@
 //   FLEXCAN REGISTERS
 //----------------------------------------------------------------------------------------------------------------------
 
-#define FLEXCAN_MCR(b)                   (*((volatile uint32_t *) ((b)+0x00)))
-#define FLEXCAN_CTRL1(b)                 (*((volatile uint32_t *) ((b)+0x04)))
-#define FLEXCAN_TIMER(b)                 (*((volatile uint32_t *) ((b)+0x08)))
-#define FLEXCAN_ECR(b)                   (*((volatile uint32_t *) ((b)+0x1C)))
-#define FLEXCAN_ESR1(b)                  (*((volatile uint32_t *) ((b)+0x20)))
-#define FLEXCAN_IMASK2(b)                (*((volatile uint32_t *) ((b)+0x24)))
-#define FLEXCAN_IMASK1(b)                (*((volatile uint32_t *) ((b)+0x28)))
-#define FLEXCAN_IFLAG2(b)                (*((volatile uint32_t *) ((b)+0x2C)))
-#define FLEXCAN_IFLAG1(b)                (*((volatile uint32_t *) ((b)+0x30)))
-#define FLEXCAN_CTRL2(b)                 (*((volatile uint32_t *) ((b)+0x34)))
-#define FLEXCAN_RXFGMASK(b)              (*((volatile uint32_t *) ((b)+0x48)))
-#define FLEXCAN_RXFIR(b)                 (*((volatile uint32_t *) ((b)+0x4C)))
-#define FLEXCAN_CBT(b)                   (*((volatile uint32_t *) ((b)+0x50)))
-#define FLEXCAN_FDCTRL(b)                (*((volatile uint32_t *) ((b)+0xC00)))
-#define FLEXCAN_FDCBT(b)                 (*((volatile uint32_t *) ((b)+0xC04)))
-//#define FLEXCAN_IDAF(b, n)               (*((volatile uint32_t *) ((b)+0xE0+(n)*4)))
-#define FLEXCAN_MB_MASK(b, n)            (*((volatile uint32_t *) ((b)+0x880+(n)*4)))
+#define FLEXCAN_MCR(b)      (*((volatile uint32_t *) ((b)+0x00)))
+#define FLEXCAN_CTRL1(b)    (*((volatile uint32_t *) ((b)+0x04)))
+#define FLEXCAN_TIMER(b)    (*((volatile uint32_t *) ((b)+0x08)))
+#define FLEXCAN_ECR(b)      (*((volatile uint32_t *) ((b)+0x1C)))
+#define FLEXCAN_ESR1(b)     (*((volatile uint32_t *) ((b)+0x20)))
+#define FLEXCAN_IMASK2(b)   (*((volatile uint32_t *) ((b)+0x24)))
+#define FLEXCAN_IMASK1(b)   (*((volatile uint32_t *) ((b)+0x28)))
+#define FLEXCAN_IFLAG2(b)   (*((volatile uint32_t *) ((b)+0x2C)))
+#define FLEXCAN_IFLAG1(b)   (*((volatile uint32_t *) ((b)+0x30)))
+#define FLEXCAN_CTRL2(b)    (*((volatile uint32_t *) ((b)+0x34)))
+#define FLEXCAN_RXFGMASK(b) (*((volatile uint32_t *) ((b)+0x48)))
+#define FLEXCAN_RXFIR(b)    (*((volatile uint32_t *) ((b)+0x4C)))
+#define FLEXCAN_CBT(b)      (*((volatile uint32_t *) ((b)+0x50)))
+#define FLEXCAN_FDCTRL(b)   (*((volatile uint32_t *) ((b)+0xC00)))
+#define FLEXCAN_FDCBT(b)    (*((volatile uint32_t *) ((b)+0xC04)))
+
+#define FLEXCAN_MB_MASK(b, n) (*((volatile uint32_t *) ((b)+0x880+(n)*4)))
 
 //--- Definitions FLEXCAN_MB_CS
 static const uint32_t FLEXCAN_MB_CS_RTR       = 1 << 20 ;
@@ -120,10 +120,11 @@ static const uint32_t FLEXCAN_MB_ID_STD_BIT_NO = 18 ;
 
 //--- Definitions for FLEXCAN_FDCTRL (§44.6.2.25, page 2810)
 static const uint32_t FLEXCAN_FDCTRL_FDRATE = 1 << 31 ;
+static const uint32_t FLEXCAN_FDCTRL_TDCEN  = 1 << 15 ;
 
-static inline uint32_t FLEXCAN_FDCTRL_MBDSR1 (const ACAN_T4FD_Settings::Payload inValue) { return uint32_t(inValue) << 19; }
+static inline uint32_t FLEXCAN_FDCTRL_MBDSR1 (const ACAN_T4FD_Settings::Payload inValue) { return uint32_t (inValue) << 19; }
 
-static inline uint32_t FLEXCAN_FDCTRL_MBDSR0 (const ACAN_T4FD_Settings::Payload inValue) { return uint32_t(inValue) << 16; }
+static inline uint32_t FLEXCAN_FDCTRL_MBDSR0 (const ACAN_T4FD_Settings::Payload inValue) { return uint32_t (inValue) << 16; }
 
 //----------------------------------------------------------------------------------------------------------------------
 //    imin template function
@@ -218,9 +219,10 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
     mTransmitBufferSize = inSettings.mTransmitBufferSize ;
     mTransmitBufferFD = new CANFDMessage [inSettings.mTransmitBufferSize] ;
   //---------- Select clock source 60MHz
-    CCM_CSCMR2 = (CCM_CSCMR2 & 0xFFFFFC03) | CCM_CSCMR2_CAN_CLK_SEL(0) | CCM_CSCMR2_CAN_CLK_PODF(0);
+    CCM_CSCMR2 = (CCM_CSCMR2 & 0xFFFFFC03) | CCM_CSCMR2_CAN_CLK_SEL(0) | CCM_CSCMR2_CAN_CLK_PODF (0) ;
   //---------- Vectors
     CCM_CCGR7 |= 0x3C0 ;
+  //  CCM_CMEOR &= ~(1 << 10) ;
     _VectorsRam [16 + IRQ_CAN3] = flexcan_isr_can3 ;
   //---------- Enable CAN
     const uint32_t lastMailboxIndex = MBCount (inSettings.mPayload) - 1 ;
@@ -236,12 +238,18 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
   //---------- Wait for freeze ack
     while (!(FLEXCAN_MCR(mFlexcanBaseAddress) & FLEXCAN_MCR_FRZ_ACK)) {}
   //--- FDCTRL (§44.6.2.25, page 2810)
-    FLEXCAN_FDCTRL (mFlexcanBaseAddress) =
-      FLEXCAN_FDCTRL_FDRATE // Enable Bit Rate Switch
+    uint32_t v =
+      FLEXCAN_FDCTRL_FDRATE // Bit 31: enable Bit Rate Switch
       | FLEXCAN_FDCTRL_MBDSR1 (inSettings.mPayload)
       | FLEXCAN_FDCTRL_MBDSR0 (inSettings.mPayload)
     ;
+    if (!inSettings.mLoopBackMode) {
+      v |= FLEXCAN_FDCTRL_TDCEN // Transceiver Delay Compensation Enable
+        | (8 << 8) // Transceiver Delay Compensation Offset
+     ;
+    }
     mPayload = inSettings.mPayload ;
+    FLEXCAN_FDCTRL (mFlexcanBaseAddress) = v ;
   //---------- Can settings
     FLEXCAN_MCR (mFlexcanBaseAddress) |=
       (inSettings.mSelfReceptionMode ? 0 : FLEXCAN_MCR_SRX_DIS) | // Disable self-reception ?
@@ -251,6 +259,7 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
     ;
   //---------- CTRL1 (CBT, §44.6.2.3, page 2768)
     FLEXCAN_CTRL1 (mFlexcanBaseAddress) =
+  //    (1 << 13) | // CAN Engine Clock Source ?
       (inSettings.mTripleSampling ? FLEXCAN_CTRL_SMP : 0) |
       (inSettings.mLoopBackMode ? FLEXCAN_CTRL_LPB : 0) |
       (inSettings.mListenOnlyMode ? FLEXCAN_CTRL_LOM : 0)
@@ -272,12 +281,13 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
       FLEXCAN_FDCBT_PSEG2 (inSettings.mDataPhaseSegment2 - 1) |
       FLEXCAN_FDCBT_PRESDIV (inSettings.mBitRatePrescaler - 1)
     ;
-  //---------- CTRL2
+  //---------- CTRL2 (§44.6.2.14, page 2791)
     FLEXCAN_CTRL2 (mFlexcanBaseAddress) =
-      (0x16 << 19) | // TASD: 0x16 is the default value
-      (   1 << 17) | // RRS: Received remote request frame is stored
-      (   1 << 16) | // EACEN: RTR bit in mask is always compared
-      (   1 << 12)   // ISO CANFD Enable
+      (0 << 19) | // TASD: 0x16 is the default value
+      (1 << 17) | // RRS: Received remote request frame is stored
+      (1 << 16) | // EACEN: RTR bit in mask is always compared
+      (1 << 13) | // Bit Timing Expansion Enable
+      (1 << 12)   // ISO CANFD Enable
     ;
   //---------- Filter
     if (inFilterCount > 0) {
@@ -314,6 +324,8 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
     }
   //---------- Select TX pin
     uint32_t TxPinConfiguration = IOMUXC_PAD_DSE (inSettings.mTxPinOutputBufferImpedance) ;
+    TxPinConfiguration |= (3 << 6) ; // Speed 200 MHz (max)
+    TxPinConfiguration |= (1 << 0) ; // Fast Slew Rate
     if (inSettings.mTxPinIsOpenCollector) {
       TxPinConfiguration |= IOMUXC_PAD_ODE ;
     }
@@ -321,8 +333,10 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
     CORE_PIN31_PADCONFIG = TxPinConfiguration ; // Pin #31
   //---------- Select RX Pin
     uint32_t RxPinConfiguration = uint32_t (inSettings.mRxPinConfiguration) << 12 ;
-    RxPinConfiguration |= IOMUXC_PAD_HYS ; // Hysterisis
-    IOMUXC_CANFD_IPP_IND_CANRX_SELECT_INPUT = 0x00 ;
+    RxPinConfiguration |= (3 << 6) ; // Speed 200 MHz (max)
+    RxPinConfiguration |= (1 << 0) ; // Fast Slew Rate
+//    RxPinConfiguration |= IOMUXC_PAD_HYS ; // Hysterisis
+    IOMUXC_CANFD_IPP_IND_CANRX_SELECT_INPUT = 0x00 ; // Page 1007, select GPIO_EMC_37_ALT9
     CORE_PIN30_CONFIG = 0x19 ; // Pin #30 SION + ALT9
     CORE_PIN30_PADCONFIG = RxPinConfiguration ; // Pin #30
   //---------- Start CAN
@@ -341,10 +355,6 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
     ;
     FLEXCAN_IMASK1 (mFlexcanBaseAddress) = uint32_t (interruptEnableBits) ;
     FLEXCAN_IMASK2 (mFlexcanBaseAddress) = uint32_t (interruptEnableBits >> 32) ;
-//     Serial.print ("It 0x") ;
-//     Serial.print (FLEXCAN_IMASK2 (mFlexcanBaseAddress), HEX) ;
-//     Serial.print (" ") ;
-//     Serial.println (FLEXCAN_IMASK1 (mFlexcanBaseAddress), HEX) ;
   }
 //---
   mGlobalStatus = (errorCode == 0) ? 0 : kGlobalStatusInitError ;
@@ -469,8 +479,6 @@ uint32_t ACAN_T4::tryToSendDataFrameFD (const CANFDMessage & inMessage) {
     if (sendStatus == 0) {
       bool sent = false ;
       const uint32_t TxMailboxIndex = MBCount (mPayload) - 1 ;
-      // Serial.print ("TxMailboxIndex ") ; Serial.println (TxMailboxIndex) ;
-      // Serial.print ("TxMailBoxAddress ") ; Serial.println (uint32_t (TxMailBoxAddress), HEX) ;
       if (mTransmitBufferCount == 0) {
         volatile uint32_t * TxMailBoxAddress = mailboxAddress (mFlexcanBaseAddress, mPayload, TxMailboxIndex) ;
         const uint32_t code = (TxMailBoxAddress [0] >> 24) & 0x0F ;

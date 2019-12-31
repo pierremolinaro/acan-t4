@@ -25,7 +25,7 @@ void setup () {
     digitalWrite (LED_BUILTIN, !digitalRead (LED_BUILTIN)) ;
   }
   Serial.println ("CAN3FD loopback test") ;
-  ACAN_T4FD_Settings settings (125 * 1000, ACAN_T4FD_Settings::DATA_BITRATE_x4) ;
+  ACAN_T4FD_Settings settings (125 * 1000, DataBitRateFactor::x4) ;
   settings.mLoopBackMode = true ;
   settings.mSelfReceptionMode = true ;
   const uint32_t errorCode = ACAN_T4::can3.beginFD (settings) ;

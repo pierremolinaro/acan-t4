@@ -93,7 +93,7 @@ ACAN_T4FD_Settings::ACAN_T4FD_Settings (const uint32_t inWhishedBitRate,
     const uint32_t W = bestArbitrationTQCount * mWhishedBitRate * mBitRatePrescaler ;
     const uint64_t diff = (kCANClockFrequency > W) ? (kCANClockFrequency - W) : (W - kCANClockFrequency) ;
     const uint64_t ppm = (uint64_t) (1000 * 1000) ;
-    mBitSettingOk = (diff * ppm) <= (((uint64_t) W) * inTolerancePPM) ;
+    mBitSettingOk = (diff * ppm) <= (uint64_t (W) * inTolerancePPM) ;
   }
 } ;
 
