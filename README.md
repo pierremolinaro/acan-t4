@@ -1,6 +1,6 @@
 ## CAN Library for Teensy 4.0
 
-It handles *Controller Area Network* (CAN) for CAN1, CAN2 and CAN3, and *Controller Area Network with Flexible Data* (CANFD) for CAN3. **Note CANFD support is experimental in release 1.0.0.**
+It handles *Controller Area Network* (CAN) for CAN1, CAN2 and CAN3, and *Controller Area Network with Flexible Data* (CANFD) for CAN3. **Note CANFD support is experimental.**
 
 ### Compatibility with the ACAN2515 and ACAN2517 libraries
 
