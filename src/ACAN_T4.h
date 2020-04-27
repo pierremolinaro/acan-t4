@@ -187,21 +187,21 @@ class ACAN_T4 {
 //--- Driver receive buffer
   private: CANMessage * mReceiveBuffer = nullptr ;
   private: CANFDMessage * mReceiveBufferFD = nullptr ;
-  private: uint32_t mReceiveBufferSize = 0 ;
-  private: uint32_t mReceiveBufferReadIndex = 0 ;
-  private: uint32_t mReceiveBufferCount = 0 ;
-  private: uint32_t mReceiveBufferPeakCount = 0 ; // == mReceiveBufferSize + 1 if overflow did occur
+  private: volatile uint32_t mReceiveBufferSize = 0 ;
+  private: volatile uint32_t mReceiveBufferReadIndex = 0 ;
+  private: volatile uint32_t mReceiveBufferCount = 0 ;
+  private: volatile uint32_t mReceiveBufferPeakCount = 0 ; // == mReceiveBufferSize + 1 if overflow did occur
 
 //--- Driver transmit buffer
   private: CANMessage * mTransmitBuffer = nullptr ;
   private: CANFDMessage * mTransmitBufferFD = nullptr ;
-  private: uint32_t mTransmitBufferSize = 0 ;
-  private: uint32_t mTransmitBufferReadIndex = 0 ;
-  private: uint32_t mTransmitBufferCount = 0 ;
-  private: uint32_t mTransmitBufferPeakCount = 0 ; // == mTransmitBufferSize + 1 if tentative overflow did occur
+  private: volatile uint32_t mTransmitBufferSize = 0 ;
+  private: volatile uint32_t mTransmitBufferReadIndex = 0 ;
+  private: volatile uint32_t mTransmitBufferCount = 0 ;
+  private: volatile uint32_t mTransmitBufferPeakCount = 0 ; // == mTransmitBufferSize + 1 if tentative overflow did occur
 
 //--- Global status
-  private : uint32_t mGlobalStatus = 0 ; // Returns 0 if all is ok
+  private : volatile uint32_t mGlobalStatus = 0 ; // Returns 0 if all is ok
   public : uint32_t globalStatus (void) const { return mGlobalStatus ; }
   public : void resetGlobalStatus (const uint32_t inReset) ;
 //--- Global status bit names
