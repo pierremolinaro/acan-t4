@@ -1,27 +1,27 @@
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 // A Teensy 4.0 CAN driver
 // by Pierre Molinaro
 // https://github.com/pierremolinaro/ACAN_T4
 //
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 
 #include <ACAN_T4FD_Settings.h>
 
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 
 static uint32_t min (const uint32_t inA, const uint32_t inB) {
   return (inA < inB) ? inA : inB ;
 }
 
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 //    CAN Settings
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 
 static const uint32_t kCANClockFrequency = 60 * 1000 * 1000 ; // 60 MHz
 
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 //    CONSTRUCTOR FOR CANFD
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 
 ACAN_T4FD_Settings::ACAN_T4FD_Settings (const uint32_t inWhishedBitRate,
                                         const DataBitRateFactor inDataBitRateFactor,
@@ -97,28 +97,28 @@ ACAN_T4FD_Settings::ACAN_T4FD_Settings (const uint32_t inWhishedBitRate,
   }
 } ;
 
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 
 uint32_t ACAN_T4FD_Settings::actualArbitrationBitRate (void) const {
   const uint32_t TQCount = 1 /* Sync Seg */ + mArbitrationPropagationSegment + mArbitrationPhaseSegment1 + mArbitrationPhaseSegment2 ;
   return kCANClockFrequency / mBitRatePrescaler / TQCount ;
 }
 
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 
 uint32_t ACAN_T4FD_Settings::actualDataBitRate (void) const {
   const uint32_t TQCount = 1 /* Sync Seg */ + mDataPropagationSegment + mDataPhaseSegment1 + mDataPhaseSegment2 ;
   return kCANClockFrequency / mBitRatePrescaler / TQCount ;
 }
 
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 
 bool ACAN_T4FD_Settings::exactArbitrationBitRate (void) const {
   const uint32_t TQCount = 1 /* Sync Seg */ + mArbitrationPropagationSegment + mArbitrationPhaseSegment1 + mArbitrationPhaseSegment2 ;
   return kCANClockFrequency == (mBitRatePrescaler * mWhishedBitRate * TQCount) ;
 }
 
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 
 uint32_t ACAN_T4FD_Settings::ppmFromWishedBitRate (void) const {
   const uint32_t TQCount = 1 /* Sync Seg */ + mArbitrationPropagationSegment + mArbitrationPhaseSegment1 + mArbitrationPhaseSegment2 ;
@@ -128,7 +128,7 @@ uint32_t ACAN_T4FD_Settings::ppmFromWishedBitRate (void) const {
   return (uint32_t) ((diff * ppm) / W) ;
 }
 
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 
 uint32_t ACAN_T4FD_Settings::arbitrationSamplePointFromBitStart (void) const {
   const uint32_t TQCount = 1 /* Sync Seg */ + mArbitrationPropagationSegment + mArbitrationPhaseSegment1 + mArbitrationPhaseSegment2 ;
@@ -137,7 +137,7 @@ uint32_t ACAN_T4FD_Settings::arbitrationSamplePointFromBitStart (void) const {
   return (samplePoint * partPerCent) / TQCount ;
 }
 
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 
 uint32_t ACAN_T4FD_Settings::dataSamplePointFromBitStart (void) const {
   const uint32_t TQCount = 1 /* Sync Seg */ + mDataPropagationSegment + mDataPhaseSegment1 + mDataPhaseSegment2 ;
@@ -146,7 +146,7 @@ uint32_t ACAN_T4FD_Settings::dataSamplePointFromBitStart (void) const {
   return (samplePoint * partPerCent) / TQCount ;
 }
 
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 
 uint32_t ACAN_T4FD_Settings::CANFDBitSettingConsistency (void) const {
   uint32_t errorCode = 0 ; // Means no error
@@ -208,7 +208,7 @@ uint32_t ACAN_T4FD_Settings::CANFDBitSettingConsistency (void) const {
   return errorCode ;
 }
 
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 
 uint32_t MBCount (const ACAN_T4FD_Settings::Payload inPayload) {
   uint32_t result = 0 ;
@@ -230,4 +230,4 @@ uint32_t MBCount (const ACAN_T4FD_Settings::Payload inPayload) {
 }
 
 
-//----------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
