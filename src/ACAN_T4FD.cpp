@@ -275,7 +275,7 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
     ;
   //---------- Data Can bit timing (FDCBT, §44.6.2.26, page 2813)
     FLEXCAN_FDCBT (mFlexcanBaseAddress) =
-      FLEXCAN_FDCBT_PROPSEG (inSettings.mDataPropagationSegment - 1) |
+      FLEXCAN_FDCBT_PROPSEG (inSettings.mDataPropagationSegment) |
       FLEXCAN_FDCBT_RJW (inSettings.mDataRJW - 1) |
       FLEXCAN_FDCBT_PSEG1 (inSettings.mDataPhaseSegment1 - 1) |
       FLEXCAN_FDCBT_PSEG2 (inSettings.mDataPhaseSegment2 - 1) |
