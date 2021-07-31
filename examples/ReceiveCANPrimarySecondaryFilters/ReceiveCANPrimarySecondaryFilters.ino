@@ -1,13 +1,13 @@
-// Receive filter demo for Teensy 4.0
+// Receive filter demo for Teensy 4.x
 
-// This demo runs on Teensy 4.0, using CAN1 in looppback mode: no external hardware required.
+// This demo runs on Teensy 4.x, using CAN1 in looppback mode: no external hardware required.
 // It shows how to define reception primary filters (up to 32)
 // and reception secondary filters (up to 96)
 
 //-----------------------------------------------------------------
 
 #ifndef __IMXRT1062__
-  #error "This sketch should be compiled for Teensy 4.0"
+  #error "This sketch should be compiled for Teensy 4.x"
 #endif
 
 //-----------------------------------------------------------------

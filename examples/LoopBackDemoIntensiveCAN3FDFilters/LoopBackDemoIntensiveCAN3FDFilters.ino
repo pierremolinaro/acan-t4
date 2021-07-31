@@ -1,4 +1,4 @@
-// LoopBackDemo for Teensy 4.0 CAN3 in CANFD mode
+// LoopBackDemo for Teensy 4.x CAN3 in CANFD mode
 
 // The FlexCAN module is configured in loop back mode:
 //   it internally receives every CAN frame it sends.
@@ -10,7 +10,7 @@
 //-----------------------------------------------------------------
 
 #ifndef __IMXRT1062__
-  #error "This sketch should be compiled for Teensy 4.0"
+  #error "This sketch should be compiled for Teensy 4.x"
 #endif
 
 //-----------------------------------------------------------------

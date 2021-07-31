@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// A Teensy 4.0 CANFD driver for FLEXCAN3
+// A Teensy 4.x CANFD driver for FLEXCAN3
 // by Pierre Molinaro
 // https://github.com/pierremolinaro/acan-t4
 //
@@ -67,6 +67,8 @@ static const uint32_t FLEXCAN_MB_CODE_TX_INACTIVE = 0x08 ;
 static const uint32_t FLEXCAN_MB_CODE_TX_ONCE     = 0x0C ;
 
 //--- Definitions for FLEXCAN_MCR
+static const uint32_t FLEXCAN_MCR_FDEN     = 0x00000800 ;
+
 static const uint32_t FLEXCAN_MCR_IRMQ     = 0x00010000 ;
 
 static const uint32_t FLEXCAN_MCR_SRX_DIS  = 0x00020000 ;
@@ -161,22 +163,22 @@ static volatile uint32_t * mailboxAddress (const uint32_t inFlexcanBaseAddress,
                                            const uint32_t inMailboxIndex) {
   uint32_t address = inFlexcanBaseAddress + 0x0080 ; // Base address
   switch (inPayload) {
-  case ACAN_T4FD_Settings::PAYLOAD_8_BYTES : // 64 MB, table 44-40 page 2837
+  case ACAN_T4FD_Settings::PAYLOAD_8_BYTES : // 64 MB, table 45-29 page 2711
     address += 16 * inMailboxIndex ;
     break ;
-  case ACAN_T4FD_Settings::PAYLOAD_16_BYTES : // 42 MB, table 44-41 page 2839
+  case ACAN_T4FD_Settings::PAYLOAD_16_BYTES : // 42 MB, table 45-30 page 2713
     address += 24 * inMailboxIndex ;
     if (inMailboxIndex >= 21) {
       address += 8 ;
     }
     break ;
-  case ACAN_T4FD_Settings::PAYLOAD_32_BYTES : // 24 MB, table 44-42 page 2840
+  case ACAN_T4FD_Settings::PAYLOAD_32_BYTES : // 24 MB, table 45-31 page 2714
     address += 40 * inMailboxIndex ;
     if (inMailboxIndex >= 12) {
       address += 32 ;
     }
     break ;
-  case ACAN_T4FD_Settings::PAYLOAD_64_BYTES :  // 14 MB, table 44-43 page 2841
+  case ACAN_T4FD_Settings::PAYLOAD_64_BYTES :  // 14 MB, table 45-32 page 2715
     address += 72 * inMailboxIndex ;
     if (inMailboxIndex >= 7) {
       address += 8 ;
@@ -212,17 +214,30 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
 //--- Configure if no error
   if (0 == errorCode) {
     mCANFD = true ;
+    mPayload = inSettings.mPayload ;
   //---------- Allocate receive buffer
     mReceiveBufferSize = inSettings.mReceiveBufferSize ;
     mReceiveBufferFD = new CANFDMessage [inSettings.mReceiveBufferSize] ;
   //---------- Allocate transmit buffer
     mTransmitBufferSize = inSettings.mTransmitBufferSize ;
     mTransmitBufferFD = new CANFDMessage [inSettings.mTransmitBufferSize] ;
-  //---------- Select clock source 60MHz
-    CCM_CSCMR2 = (CCM_CSCMR2 & 0xFFFFFC03) | CCM_CSCMR2_CAN_CLK_SEL(0) | CCM_CSCMR2_CAN_CLK_PODF (0) ;
+  //---------- Select clock source (see i.MX RT1060 Processor Reference Manual, Rev. 2, 12/2019, page 1059)
+    uint32_t cscmr2 = CCM_CSCMR2 & 0xFFFFFC03 ;
+    cscmr2 |= CCM_CSCMR2_CAN_CLK_PODF (getCANRootClockDivisor () - 1) ;
+    switch (getCANRootClock ()) {
+    case ACAN_CAN_ROOT_CLOCK::CLOCK_24MHz :
+      cscmr2 |= CCM_CSCMR2_CAN_CLK_SEL (1) ;
+      break ;
+    case ACAN_CAN_ROOT_CLOCK::CLOCK_60MHz :
+      cscmr2 |= CCM_CSCMR2_CAN_CLK_SEL (0) ;
+      break ;
+//     case ACAN_CAN_ROOT_CLOCK::CLOCK_80MHz :
+//       cscmr2 |= CCM_CSCMR2_CAN_CLK_SEL (2) ;
+//       break ;
+    }
+    CCM_CSCMR2 = cscmr2 ;
   //---------- Vectors
     CCM_CCGR7 |= 0x3C0 ;
-  //  CCM_CMEOR &= ~(1 << 10) ;
     _VectorsRam [16 + IRQ_CAN3] = flexcan_isr_can3 ;
   //---------- Enable CAN
     const uint32_t lastMailboxIndex = MBCount (inSettings.mPayload) - 1 ;
@@ -237,9 +252,9 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
     while (FLEXCAN_MCR(mFlexcanBaseAddress) & FLEXCAN_MCR_SOFT_RST) {}
   //---------- Wait for freeze ack
     while (!(FLEXCAN_MCR(mFlexcanBaseAddress) & FLEXCAN_MCR_FRZ_ACK)) {}
-  //--- FDCTRL (§44.6.2.25, page 2810)
+  //--- FDCTRL (§44.6.2.21, page 2697)
     uint32_t v =
-      FLEXCAN_FDCTRL_FDRATE // Bit 31: enable Bit Rate Switch
+      FLEXCAN_FDCTRL_FDRATE // Bit 31: enable bitrate Switch
       | FLEXCAN_FDCTRL_MBDSR1 (inSettings.mPayload)
       | FLEXCAN_FDCTRL_MBDSR0 (inSettings.mPayload)
     ;
@@ -248,18 +263,17 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
         | (8 << 8) // Transceiver Delay Compensation Offset
      ;
     }
-    mPayload = inSettings.mPayload ;
     FLEXCAN_FDCTRL (mFlexcanBaseAddress) = v ;
   //---------- Can settings
     FLEXCAN_MCR (mFlexcanBaseAddress) |=
       (inSettings.mSelfReceptionMode ? 0 : FLEXCAN_MCR_SRX_DIS) | // Disable self-reception ?
-      (1 << 11)  | // Enable CANFD mode (RFEN (bit 29) should be set in CANFD mode
+      FLEXCAN_MCR_FDEN | // FDEN: CAN FD operation enable
       FLEXCAN_MCR_IRMQ | // Enable per-mailbox filtering (§56.4.2)
       (lastMailboxIndex << 0) // Mailboxes
     ;
   //---------- CTRL1 (CBT, §44.6.2.3, page 2768)
     FLEXCAN_CTRL1 (mFlexcanBaseAddress) =
-  //    (1 << 13) | // CAN Engine Clock Source ?
+//      (1 << 13) | // CAN Engine Clock Source ?
       (inSettings.mTripleSampling ? FLEXCAN_CTRL_SMP : 0) |
       (inSettings.mLoopBackMode ? FLEXCAN_CTRL_LPB : 0) |
       (inSettings.mListenOnlyMode ? FLEXCAN_CTRL_LOM : 0)
@@ -510,8 +524,8 @@ uint32_t ACAN_T4::tryToSendDataFrameFD (const CANFDMessage & inMessage) {
         sendStatus = kTransmitBufferOverflow ;
       }
     }
-  //---
   interrupts () ;
+//---
   return sendStatus ;
 }
       //--------------------------------------------------------------------------------------------------

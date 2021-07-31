@@ -1,4 +1,4 @@
-// LoopBackDemo for Teensy 4.x CAN1
+// LoopBackDemo for Teensy 4.x CAN1: getting the 615 kbit/s bitrate
 
 // The FlexCAN module is configured in loop back mode:
 //   it internally receives every CAN frame it sends.
@@ -25,7 +25,8 @@ void setup () {
     digitalWrite (LED_BUILTIN, !digitalRead (LED_BUILTIN)) ;
   }
   Serial.println ("CAN1 loopback test") ;
-  ACAN_T4_Settings settings (125 * 1000) ; // 125 kbit/s
+  setCANRootClock (ACAN_CAN_ROOT_CLOCK::CLOCK_24MHz, 1) ; // Call if BEFORE any ACAN_T4_Settings instanciation
+  ACAN_T4_Settings settings (615000) ; // 615 kbit/s
   settings.mLoopBackMode = true ;
   settings.mSelfReceptionMode = true ;
   const uint32_t errorCode = ACAN_T4::can1.begin (settings) ;
@@ -45,7 +46,7 @@ void setup () {
   Serial.print (settings.actualBitRate ()) ;
   Serial.println (" bit/s") ;
   Serial.print ("Exact bitrate ? ") ;
-  Serial.println (settings.exactBitRate () ? "yes" : "no") ;
+  Serial.println (settings.exactBitRate () ? "yes" : "no") ; 
   Serial.print ("Distance from wished bitrate: ") ;
   Serial.print (settings.ppmFromWishedBitRate ()) ;
   Serial.println (" ppm") ;
@@ -58,8 +59,8 @@ void setup () {
     Serial.print ("Error can1: 0x") ;
     Serial.println (errorCode, HEX) ;
     while (1) {
-      delay (100) ;
-      Serial.println ("Invalid setting") ;
+      delay (5000) ;
+      Serial.println ("Invalid setting") ;   
       digitalWrite (LED_BUILTIN, !digitalRead (LED_BUILTIN)) ;
     }
   }

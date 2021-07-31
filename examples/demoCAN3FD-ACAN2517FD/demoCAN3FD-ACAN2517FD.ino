@@ -1,4 +1,4 @@
-// Demo for Teensy 4.0 CAN3 in CANFD mode
+// Demo for Teensy 4.x CAN3 in CANFD mode
 
 // The CAN3 module should be connected to a MCP2517FD or MCP2518FD.
 // This demo uses SPI1
@@ -14,7 +14,7 @@
 //-----------------------------------------------------------------
 
 #ifndef __IMXRT1062__
-  #error "This sketch should be compiled for Teensy 4.0"
+  #error "This sketch should be compiled for Teensy 4.x"
 #endif
 
 //-----------------------------------------------------------------

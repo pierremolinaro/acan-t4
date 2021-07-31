@@ -1,10 +1,10 @@
 //--------------------------------------------------------------------------------------------------
-// A Teensy 4.0 CAN 2.0B driver
+// A Teensy 4.x CAN 2.0B driver
 // by Pierre Molinaro
 // https://github.com/pierremolinaro/ACAN_T4
 //
 //--------------------------------------------------------------------------------------------------
-//  Teensy 4.0 FlexCAN pins
+//  Teensy 4.x FlexCAN pins
 //
 //  FLEXCAN1
 //    TX: #22 (default), #11
@@ -392,8 +392,21 @@ uint32_t ACAN_T4::begin (const ACAN_T4_Settings & inSettings,
         mCallBackFunctionArray [i + primaryFilterCount] = inSecondaryFilters [i].mCallBackRoutine ;
       }
     }
-  //---------- Select clock source 60MHz
-    CCM_CSCMR2 = (CCM_CSCMR2 & 0xFFFFFC03) | CCM_CSCMR2_CAN_CLK_SEL(0) | CCM_CSCMR2_CAN_CLK_PODF(0);
+  //---------- Select clock source (see i.MX RT1060 Processor Reference Manual, Rev. 2, 12/2019, page 1059)
+    uint32_t cscmr2 = CCM_CSCMR2 & 0xFFFFFC03 ;
+    cscmr2 |= CCM_CSCMR2_CAN_CLK_PODF (getCANRootClockDivisor () - 1) ;
+    switch (getCANRootClock ()) {
+    case ACAN_CAN_ROOT_CLOCK::CLOCK_24MHz :
+      cscmr2 |= CCM_CSCMR2_CAN_CLK_SEL (1) ;
+      break ;
+    case ACAN_CAN_ROOT_CLOCK::CLOCK_60MHz :
+      cscmr2 |= CCM_CSCMR2_CAN_CLK_SEL (0) ;
+      break ;
+//     case ACAN_CAN_ROOT_CLOCK::CLOCK_80MHz :
+//       cscmr2 |= CCM_CSCMR2_CAN_CLK_SEL (2) ;
+//       break ;
+    }
+    CCM_CSCMR2 = cscmr2 ;
   //---------- Vectors
     switch (mModule) {
     case ACAN_T4_Module::CAN1 :

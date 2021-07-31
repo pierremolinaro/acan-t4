@@ -43,7 +43,7 @@ class CANFDMessage {
   ext (inMessage.ext), // false -> base frame, true -> extended frame
   type (inMessage.rtr ? CAN_REMOTE : CAN_DATA),
   idx (inMessage.idx),  // This field is used by the driver
-  len (inMessage.len), // Length of data (0 ... 64)
+  len (inMessage.len), // Length of data (0 ... 8)
   data () {
     data64 [0] = inMessage.data64 ;
   }

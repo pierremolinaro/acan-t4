@@ -1,5 +1,5 @@
 //--------------------------------------------------------------------------------------------------
-// A Teensy 4.0 CAN driver
+// A Teensy 4.x CAN driver
 // by Pierre Molinaro
 // https://github.com/pierremolinaro/ACAN_T4
 //
@@ -9,7 +9,7 @@
 
 //--------------------------------------------------------------------------------------------------
 
-#include <stdint.h>
+#include <ACAN_T4_T4FD_rootCANClock.h>
 
 //--------------------------------------------------------------------------------------------------
 
@@ -50,13 +50,13 @@ class ACAN_T4_Settings {
 //    Properties
 //······················································································································
 
-//--- CAN 2.0B bit timing (default values correspond to 250 kb/s)
-  public: uint32_t mWhishedBitRate = 250 * 1000 ; // In kb/s
-  public: uint16_t mBitRatePrescaler = 10 ; // 1...256
-  public: uint8_t mPropagationSegment = 8 ; // 1...8
-  public: uint8_t mPhaseSegment1 = 8 ; // 1...8
-  public: uint8_t mPhaseSegment2 = 7 ;  // 2...8
-  public: uint8_t mRJW = 4 ; // 1...4
+//--- CAN 2.0B bit timing
+  public: uint32_t mWhishedBitRate ; // In kb/s
+  public: uint16_t mBitRatePrescaler = 1 ; // 1...256
+  public: uint8_t mPropagationSegment = 1 ; // 1...8
+  public: uint8_t mPhaseSegment1 = 1 ; // 1...8
+  public: uint8_t mPhaseSegment2 = 1 ;  // 2...8
+  public: uint8_t mRJW = 1 ; // 1...4
   public: bool mTripleSampling = false ; // true --> triple sampling, false --> single sampling
   public: bool mBitSettingOk = true ; // The above configuration is correct
 
@@ -90,13 +90,13 @@ class ACAN_T4_Settings {
 //--- Transmit buffer size
   public: uint16_t mTransmitBufferSize = 16 ;
 
-//--- Compute actual bit rate
+//--- Compute actual bitrate
   public: uint32_t actualBitRate (void) const ;
 
-//--- Exact bit rate ?
+//--- Exact bitrate ?
   public: bool exactBitRate (void) const ;
 
-//--- Distance between actual bit rate and requested bit rate (in ppm, part-per-million)
+//--- Distance between actual bitrate and requested bitrate (in ppm, part-per-million)
   public: uint32_t ppmFromWishedBitRate (void) const ;
 
 //--- Distance of sample point from bit start (in ppc, part-per-cent, denoted by %)

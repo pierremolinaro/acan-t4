@@ -1,12 +1,14 @@
-// Demo for Teensy 4.0 CAN1, CAN2 and CAN3
+// Demo for Teensy 4.x CAN1, CAN2 and CAN3
 
 // Just connect together all CAN pins:
 //   - CRX1 (#23), CTX1 (#22), CRX2 (#0), CTX2 (#1), CRX3 (#30), CTX3 (#31)
 
 //-----------------------------------------------------------------
+// CAN1, CAN2 and CAN3 are configured in CAN2.0B.
+//-----------------------------------------------------------------
 
 #ifndef __IMXRT1062__
-  #error "This sketch should be compiled for Teensy 4.0"
+  #error "This sketch should be compiled for Teensy 4.x"
 #endif
 
 //-----------------------------------------------------------------
@@ -24,11 +26,36 @@ void setup () {
   }
   Serial.println ("CAN1-CAN2-CAN3 test") ;
   ACAN_T4_Settings settings (1000 * 1000) ;
-  Serial.print ("Bit rate: ") ;
-  Serial.print (settings.actualBitRate ()) ;
-  Serial.println (" bit/s") ;
   settings.mTxPinIsOpenCollector = true ;
   settings.mRxPinConfiguration = ACAN_T4_Settings::PULLUP_22k ;
+  Serial.print ("CAN Root Clock frequency: ") ;
+  Serial.print (getCANRootClockFrequency ()) ;
+  Serial.println (" Hz") ;
+  Serial.print ("CAN Root Clock divisor: ") ;
+  Serial.println (getCANRootClockDivisor ()) ;
+  Serial.print ("Bitrate prescaler: ") ;
+  Serial.println (settings.mBitRatePrescaler) ;
+  Serial.print ("Propagation Segment: ") ;
+  Serial.println (settings.mPropagationSegment) ;
+  Serial.print ("Phase segment 1: ") ;
+  Serial.println (settings.mPhaseSegment1) ;
+  Serial.print ("Phase segment 2: ") ;
+  Serial.println (settings.mPhaseSegment2) ;
+  Serial.print ("RJW: ") ;
+  Serial.println (settings.mRJW) ;
+  Serial.print ("Triple Sampling: ") ;
+  Serial.println (settings.mTripleSampling ? "yes" : "no") ;
+  Serial.print ("Actual bitrate: ") ;
+  Serial.print (settings.actualBitRate ()) ;
+  Serial.println (" bit/s") ;
+  Serial.print ("Exact bitrate ? ") ;
+  Serial.println (settings.exactBitRate () ? "yes" : "no") ;
+  Serial.print ("Distance from wished bitrate: ") ;
+  Serial.print (settings.ppmFromWishedBitRate ()) ;
+  Serial.println (" ppm") ;
+  Serial.print ("Sample point: ") ;
+  Serial.print (settings.samplePointFromBitStart ()) ;
+  Serial.println ("%") ;
   uint32_t errorCode = ACAN_T4::can1.begin (settings) ;
   if (0 == errorCode) {
     Serial.println ("can1 ok") ;
@@ -100,7 +127,7 @@ void loop () {
 //  message.rtr = true ;
 //--- CAN3 send
   if (gSentCount3 < SEND_COUNT) {
-    message.id = (micros () % 682) * 3 + 0 ;
+    message.id = 0 ; //(micros () % 682) * 3 + 0 ;
     const bool ok = ACAN_T4::can3.tryToSend (message) ;
     if (ok) {
       gSentCount3 += 1 ;
@@ -108,7 +135,7 @@ void loop () {
   }
 //--- CAN1 send
   if (gSentCount1 < SEND_COUNT) {
-    message.id = (micros () % 682) * 3 + 1 ;
+    message.id = 1 ; // (micros () % 682) * 3 + 1 ;
     const bool ok = ACAN_T4::can1.tryToSend (message) ;
     if (ok) {
       gSentCount1 += 1 ;
@@ -116,7 +143,7 @@ void loop () {
   }
 //--- CAN2 send
   if (gSentCount2 < SEND_COUNT) {
-    message.id = (micros () % 682) * 3 + 2 ;
+    message.id = 2 ; // (micros () % 682) * 3 + 2 ;
     const bool ok = ACAN_T4::can2.tryToSend (message) ;
     if (ok) {
       gSentCount2 += 1 ;

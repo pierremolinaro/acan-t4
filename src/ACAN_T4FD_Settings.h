@@ -9,7 +9,8 @@
 
 //--------------------------------------------------------------------------------------------------
 
-#include "ACANFD_DataBitRateFactor.h"
+#include <ACANFD_DataBitRateFactor.h>
+#include <ACAN_T4_T4FD_rootCANClock.h>
 
 //--------------------------------------------------------------------------------------------------
 
@@ -61,8 +62,8 @@ class ACAN_T4FD_Settings {
 //··································································································
 
 //--- CAN 2.0B bit timing (default values correspond to 250 kb/s, DATA_BITRATE_x1)
-  public: uint32_t mWhishedBitRate = 250 * 1000 ; // In kb/s
-//--- Bit rate prescaler is common to arbitration bit rate and data bit rate
+  public: uint32_t mWhishedArbitrationBitRate ; // In kb/s
+//--- bitrate prescaler is common to arbitration bitrate and data bitrate
   public: uint16_t mBitRatePrescaler = 10 ; // 1...1024
 //--- Arbitration segments
   public: uint8_t mArbitrationPropagationSegment = 8 ; // 1...64
@@ -114,14 +115,14 @@ class ACAN_T4FD_Settings {
 // Accessors
 //··································································································
 
-//--- Compute actual bit rate
+//--- Compute actual bitrate
   public: uint32_t actualArbitrationBitRate (void) const ;
   public: uint32_t actualDataBitRate (void) const ;
 
-//--- Exact bit rate ?
+//--- Exact bitrate ?
   public: bool exactArbitrationBitRate (void) const ;
 
-//--- Distance between actual bit rate and requested bit rate (in ppm, part-per-million)
+//--- Distance between actual bitrate and requested bitrate (in ppm, part-per-million)
   public: uint32_t ppmFromWishedBitRate (void) const ;
 
 //--- Distance of sample point from bit start (in ppc, part-per-cent, denoted by %)
