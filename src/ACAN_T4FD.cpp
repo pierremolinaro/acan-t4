@@ -1,22 +1,23 @@
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 // A Teensy 4.x CANFD driver for FLEXCAN3
 // by Pierre Molinaro
 // https://github.com/pierremolinaro/acan-t4
 //
-//--------------------------------------------------------------------------------------------------
-//  Teensy 4.0 FlexCAN pins
+//----------------------------------------------------------------------------------------
+//  Teensy 4.0 / 4.1 FlexCAN pins
 //
 //  FLEXCAN3
 //    TX: #31 (default)
 //    RX: #30 (default)
 //
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 #include <ACAN_T4.h>
+#include <algorithm>
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //   FLEXCAN REGISTERS
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 #define FLEXCAN_MCR(b)      (*((volatile uint32_t *) ((b)+0x00)))
 #define FLEXCAN_CTRL1(b)    (*((volatile uint32_t *) ((b)+0x04)))
@@ -34,6 +35,7 @@
 #define FLEXCAN_FDCTRL(b)   (*((volatile uint32_t *) ((b)+0xC00)))
 #define FLEXCAN_FDCBT(b)    (*((volatile uint32_t *) ((b)+0xC04)))
 
+// #define FLEXCAN_IDAF(b, n)    (*((volatile uint32_t *) ((b)+0xE0+(n)*4)))
 #define FLEXCAN_MB_MASK(b, n) (*((volatile uint32_t *) ((b)+0x880+(n)*4)))
 
 //--- Definitions FLEXCAN_MB_CS
@@ -128,35 +130,27 @@ static inline uint32_t FLEXCAN_FDCTRL_MBDSR1 (const ACAN_T4FD_Settings::Payload 
 
 static inline uint32_t FLEXCAN_FDCTRL_MBDSR0 (const ACAN_T4FD_Settings::Payload inValue) { return uint32_t (inValue) << 16; }
 
-//--------------------------------------------------------------------------------------------------
-//    imin template function
-//--------------------------------------------------------------------------------------------------
-
-template <typename T> static inline T imin (const T inA, const T inB) {
-  return (inA <= inB) ? inA : inB ;
-}
-
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //    CANFD LENGTH CODE
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 static const uint8_t CANFD_LENGTH_CODE [16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 24, 32, 48, 64} ;
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //   64-bit ONE
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 static const uint64_t ONE = 1 ;
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //   MAILBOXES
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 static uint32_t dataWordsForPayload (const ACAN_T4FD_Settings::Payload inPayload) {
   return 2 << uint32_t (inPayload) ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 static volatile uint32_t * mailboxAddress (const uint32_t inFlexcanBaseAddress,
                                            const ACAN_T4FD_Settings::Payload inPayload,
@@ -188,9 +182,9 @@ static volatile uint32_t * mailboxAddress (const uint32_t inFlexcanBaseAddress,
   return (volatile uint32_t *) address ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //    beginFD method
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
                            const ACANFDFilter inFilters [],
@@ -239,7 +233,7 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
   //---------- Vectors
     CCM_CCGR7 |= 0x3C0 ;
     _VectorsRam [16 + IRQ_CAN3] = flexcan_isr_can3 ;
-  //---------- Enable CAN
+  //---------- Enable CANFD
     const uint32_t lastMailboxIndex = MBCount (inSettings.mPayload) - 1 ;
     FLEXCAN_MCR (mFlexcanBaseAddress) =
       (1 << 30) | // Enable to enter to freeze mode
@@ -303,19 +297,25 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
       (1 << 13) | // Bit Timing Expansion Enable
       (inSettings.mISOCRCEnabled ? (1 << 12) : 0)   // ISO CANFD Enable
     ;
-  //---------- Filter
+  //---------- Filters
     if (inFilterCount > 0) {
       mCallBackFunctionArrayFD = new ACANFDCallBackRoutine [inSettings.mRxCANFDMBCount] ;
       mCANFDAcceptanceFilterArray = new uint32_t [inSettings.mRxCANFDMBCount] ;
       for (uint32_t i=0 ; i < inFilterCount ; i++) {
         mCallBackFunctionArrayFD [i] = inFilters [i].mCallBackRoutine ;
         FLEXCAN_MB_MASK (mFlexcanBaseAddress, i+1) = inFilters [i].mFilterMask ;
-        mCANFDAcceptanceFilterArray [i] = inFilters [i].mAcceptanceFilter ;
+        mCANFDAcceptanceFilterArray [i] = inFilters [i].mAcceptanceMask ;
+//         Serial.print ("Filter ") ;
+//         Serial.print (i) ;
+//         Serial.print (": mask 0x") ;
+//         Serial.print (inFilters [i].mFilterMask, HEX) ;
+//         Serial.print (", acceptance 0x") ;
+//         Serial.println (inFilters [i].mAcceptanceMask, HEX) ;
       }
       for (uint32_t i = inFilterCount ; i < inSettings.mRxCANFDMBCount ; i++) {
         mCallBackFunctionArrayFD [i] = inFilters [inFilterCount - 1].mCallBackRoutine ;
         FLEXCAN_MB_MASK (mFlexcanBaseAddress, i+1) = inFilters [inFilterCount - 1].mFilterMask ;
-        mCANFDAcceptanceFilterArray [i] = inFilters [inFilterCount - 1].mAcceptanceFilter ;
+        mCANFDAcceptanceFilterArray [i] = inFilters [inFilterCount - 1].mAcceptanceMask ;
       }
     }else{
       for (uint32_t i = 1 ; i <= inSettings.mRxCANFDMBCount ; i++) {
@@ -331,10 +331,17 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
     mRxCANFDMBCount = inSettings.mRxCANFDMBCount ;
     for (uint32_t i = 1 ; i <= mRxCANFDMBCount ; i++) {
       volatile uint32_t * RxMailBoxAddress = mailboxAddress (mFlexcanBaseAddress, mPayload, i) ;
+      uint32_t code = FLEXCAN_MB_CS_CODE (FLEXCAN_MB_CODE_TX_EMPTY) ;
       if (mCANFDAcceptanceFilterArray != nullptr) {
-        RxMailBoxAddress [1] = mCANFDAcceptanceFilterArray [i-1] ; // Write MB acceptance filter
+        RxMailBoxAddress [1] = mCANFDAcceptanceFilterArray [i-1] & 0x1FFFFFFF ; // Write MB acceptance filter
+        if ((mCANFDAcceptanceFilterArray [i-1] & (1 << 31)) != 0) {
+          code |= (1 << 20) ; // Filter remote / data
+        }
+        if ((mCANFDAcceptanceFilterArray [i-1] & (1 << 30)) != 0) {
+          code |= (1 << 21) ; // Filter standard / extended
+        }
       }
-      RxMailBoxAddress [0] = FLEXCAN_MB_CS_CODE (FLEXCAN_MB_CODE_TX_EMPTY) ;
+      RxMailBoxAddress [0] = code ;
     }
   //---------- Select TX pin
     uint32_t TxPinConfiguration = IOMUXC_PAD_DSE (inSettings.mTxPinOutputBufferImpedance) ;
@@ -376,9 +383,9 @@ uint32_t ACAN_T4::beginFD (const ACAN_T4FD_Settings & inSettings,
   return errorCode ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //   RECEPTION
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 bool ACAN_T4::receiveFD (CANFDMessage & outMessage) {
   noInterrupts () ;
@@ -392,14 +399,14 @@ bool ACAN_T4::receiveFD (CANFDMessage & outMessage) {
   return hasMessage ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 bool ACAN_T4::dispatchReceivedMessageFD (const tFilterMatchCallBack inFilterMatchCallBack) {
   CANFDMessage receivedMessage ;
   const bool hasReceived = receiveFD (receivedMessage) ;
   if (hasReceived) {
     const uint32_t filterIndex = receivedMessage.idx ;
-    if (NULL != inFilterMatchCallBack) {
+    if (nullptr != inFilterMatchCallBack) {
       inFilterMatchCallBack (filterIndex) ;
     }
     if (filterIndex < mRxCANFDMBCount) {
@@ -412,15 +419,15 @@ bool ACAN_T4::dispatchReceivedMessageFD (const tFilterMatchCallBack inFilterMatc
   return hasReceived ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //   EMISSION
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 bool ACAN_T4::tryToSendFD (const CANFDMessage & inMessage) {
   return tryToSendReturnStatusFD (inMessage) == 0 ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 uint32_t ACAN_T4::tryToSendReturnStatusFD (const CANFDMessage & inMessage) {
   uint32_t sendStatus = 0 ;
@@ -436,7 +443,7 @@ uint32_t ACAN_T4::tryToSendReturnStatusFD (const CANFDMessage & inMessage) {
   return sendStatus ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 uint32_t ACAN_T4::tryToSendRemoteFrameFD (const CANFDMessage & inMessage) {
   uint32_t sendStatus = 0 ;
@@ -466,7 +473,7 @@ uint32_t ACAN_T4::tryToSendRemoteFrameFD (const CANFDMessage & inMessage) {
   return sendStatus ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 uint32_t ACAN_T4::tryToSendDataFrameFD (const CANFDMessage & inMessage) {
   uint32_t sendStatus = 0 ;
@@ -528,9 +535,12 @@ uint32_t ACAN_T4::tryToSendDataFrameFD (const CANFDMessage & inMessage) {
 //---
   return sendStatus ;
 }
-      //--------------------------------------------------------------------------------------------------
 
-void ACAN_T4::writeTxRegistersFD (const CANFDMessage & inMessage, volatile uint32_t * inMBAddress) {
+
+//----------------------------------------------------------------------------------------
+
+void ACAN_T4::writeTxRegistersFD (const CANFDMessage & inMessage,
+                                  volatile uint32_t * inMBAddress) {
 //--- Make Tx box inactive
   inMBAddress [0] = FLEXCAN_MB_CS_CODE (FLEXCAN_MB_CODE_TX_INACTIVE) ;
 //--- Write identifier
@@ -586,14 +596,19 @@ void ACAN_T4::writeTxRegistersFD (const CANFDMessage & inMessage, volatile uint3
   mailBox0Address [0] = FLEXCAN_MB_CS_CODE (FLEXCAN_MB_CODE_TX_INACTIVE) ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 //   MESSAGE INTERRUPT SERVICE ROUTINES
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
-void ACAN_T4::readRxRegistersFD (CANFDMessage & outMessage, const uint32_t inReceiveMailboxIndex) {
+void ACAN_T4::readRxRegistersFD (CANFDMessage & outMessage,
+                                 const uint32_t inReceiveMailboxIndex) {
   volatile uint32_t * RxMailBoxAddress = mailboxAddress (mFlexcanBaseAddress, mPayload, inReceiveMailboxIndex) ;
-//--- Get identifier, ext, rtr and len
-  const uint32_t controlField = RxMailBoxAddress [0] ;
+//--- Wait while MB is busy
+  uint32_t controlField = RxMailBoxAddress [0] ;
+  while ((controlField & (1 << 24)) != 0) {
+    controlField = RxMailBoxAddress [0] ;
+  }
+//--- Get identifier, ext and len
   const uint32_t lengthCode = FLEXCAN_get_length (controlField) ;
   outMessage.len = CANFD_LENGTH_CODE [lengthCode] ;
   outMessage.ext = (controlField & FLEXCAN_MB_CS_IDE) != 0 ;
@@ -615,17 +630,24 @@ void ACAN_T4::readRxRegistersFD (CANFDMessage & outMessage, const uint32_t inRec
   for (uint32_t i=0 ; i < dataWordsForPayload (mPayload) ; i++) {
     outMessage.data32 [i] = __builtin_bswap32 (RxMailBoxAddress [i + 2]) ;
   }
-//--- Set receive mailbox index, minus 1
+//--- Set receive mailbox index (minus one, as Mailbox #0 is unused)
    outMessage.idx = uint8_t (inReceiveMailboxIndex - 1) ;
-//--- Write acceptance filter (if defined)
-  if (mCANFDAcceptanceFilterArray != nullptr) {
-    RxMailBoxAddress [1] = mCANFDAcceptanceFilterArray [inReceiveMailboxIndex-1] ;
-  }
 //--- Make Mailbox ready to receive an other frame
-  RxMailBoxAddress [0] = FLEXCAN_MB_CS_CODE (FLEXCAN_MB_CODE_TX_EMPTY) ;
+  uint32_t code = FLEXCAN_MB_CS_CODE (FLEXCAN_MB_CODE_TX_EMPTY) ;
+  if (mCANFDAcceptanceFilterArray != nullptr) {
+    const uint32_t acceptanceFilter = mCANFDAcceptanceFilterArray [inReceiveMailboxIndex-1] ;
+    RxMailBoxAddress [1] = acceptanceFilter & 0x1FFFFFFF ; // Write MB acceptance filter
+    if ((acceptanceFilter & (1 << 31)) != 0) {
+      code |= (1 << 20) ; // Filter remote / data
+    }
+    if ((acceptanceFilter & (1 << 30)) != 0) {
+      code |= (1 << 21) ; // Filter standard / extended
+    }
+  }
+  RxMailBoxAddress [0] = code ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 void ACAN_T4::message_isr_receiveFD (const uint32_t inReceiveMailboxIndex) {
   CANFDMessage message ;
@@ -646,7 +668,7 @@ void ACAN_T4::message_isr_receiveFD (const uint32_t inReceiveMailboxIndex) {
   }
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
 
 void ACAN_T4::message_isr_FD (void) {
   uint64_t status = FLEXCAN_IFLAG2 (mFlexcanBaseAddress) ;
@@ -655,8 +677,8 @@ void ACAN_T4::message_isr_FD (void) {
 //--- Frames have been received in Rx mailboxes ?
   uint32_t receiveStatus = status & ((ONE << mRxCANFDMBCount) - ONE) ;
   while (receiveStatus != 0) {
-    const uint64_t receiveMailboxIndex = (uint64_t)  __builtin_ctzl (receiveStatus) ;
-    receiveStatus &= ~ (1UL << receiveMailboxIndex) ;
+    const uint32_t receiveMailboxIndex = uint32_t (__builtin_ctz (receiveStatus)) ;
+    receiveStatus &= ~ (1 << receiveMailboxIndex) ;
     message_isr_receiveFD (receiveMailboxIndex) ;
   }
 //--- Tx Mailbox becomes free ?
@@ -678,4 +700,78 @@ void ACAN_T4::message_isr_FD (void) {
   const uint32_t unused __attribute__((unused)) = FLEXCAN_TIMER (mFlexcanBaseAddress) ;
 }
 
-//--------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------
+//    CANFD Filter (format A)
+//----------------------------------------------------------------------------------------
+
+static uint32_t defaultMask (const tFrameFormat inFormat) {
+  return (inFormat == kExtended) ? 0x1FFFFFFF : 0x7FF ;
+}
+
+//----------------------------------------------------------------------------------------
+
+static uint32_t computeFilterMask (const tFrameFormat inFormat,
+                                   const uint32_t inMask) {
+//--- THIS IS VERY STRANGE!!! Following the reference manual, the mask should be :
+//    ((inFormat == kStandard) ? (inMask << 19) : (inMask << 1))
+  return
+    (1 << 31) | // Test RTR bit
+    (1 << 30) | // Test IDE bit
+    ((inFormat == kStandard) ? (inMask << 18) : (inMask << 0))
+  ;
+}
+
+//----------------------------------------------------------------------------------------
+
+static uint32_t computeAcceptanceMask (const tFrameKind inKind,
+                                       const tFrameFormat inFormat,
+                                       const uint32_t inAcceptance) {
+  return
+    ((inKind == kRemote) ? (1 << 31) : 0) | // Accepts remote or data frames ?
+    ((inFormat == kExtended) ? (1 << 30) : 0) | // Accepts standard or extended frames ?
+    ((inFormat == kStandard) ? (inAcceptance << 18) : inAcceptance)
+  ;
+}
+
+//----------------------------------------------------------------------------------------
+
+ACANFDFilter::ACANFDFilter (const ACANFDCallBackRoutine inCallBackRoutine) :
+mFilterMask (0),
+mAcceptanceMask (0),
+mCallBackRoutine (inCallBackRoutine) {
+}
+
+//----------------------------------------------------------------------------------------
+
+ACANFDFilter::ACANFDFilter (const tFrameKind inKind,
+                            const tFrameFormat inFormat,
+                            const ACANFDCallBackRoutine inCallBackRoutine) :
+mFilterMask (computeFilterMask (inFormat, 0)),
+mAcceptanceMask (computeAcceptanceMask (inKind, inFormat, 0)),
+mCallBackRoutine (inCallBackRoutine) {
+}
+
+//----------------------------------------------------------------------------------------
+
+ACANFDFilter::ACANFDFilter (const tFrameKind inKind,
+                            const tFrameFormat inFormat,
+                            const uint32_t inIdentifier,
+                            const ACANFDCallBackRoutine inCallBackRoutine) :
+mFilterMask (computeFilterMask (inFormat, defaultMask (inFormat))),
+mAcceptanceMask (computeAcceptanceMask (inKind, inFormat, inIdentifier)),
+mCallBackRoutine (inCallBackRoutine) {
+}
+
+//----------------------------------------------------------------------------------------
+
+ACANFDFilter::ACANFDFilter (const tFrameKind inKind,
+                            const tFrameFormat inFormat,
+                            const uint32_t inMask,
+                            const uint32_t inAcceptance,
+                            const ACANFDCallBackRoutine inCallBackRoutine) :
+mFilterMask (computeFilterMask (inFormat, inMask)),
+mAcceptanceMask (computeAcceptanceMask (inKind, inFormat, inAcceptance)),
+mCallBackRoutine (inCallBackRoutine) {
+}
+
+//----------------------------------------------------------------------------------------

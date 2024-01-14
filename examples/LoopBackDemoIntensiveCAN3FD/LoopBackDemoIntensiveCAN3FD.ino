@@ -44,7 +44,7 @@ void setup () {
 static uint32_t gBlinkDate = 0 ;
 static uint32_t gSentCount = 0 ;
 static uint32_t gReceivedCount = 0 ;
-static const uint32_t MAX_SENT_COUNT = 100 * 1000 ;
+static const uint32_t MAX_SENT_COUNT = 100 * 1000 * 1000 ;
 
 static const uint32_t RECEIVE_MAILBOX_COUNT = 11 ;
 static uint32_t gReceiveCountPerMailbox [RECEIVE_MAILBOX_COUNT] ;

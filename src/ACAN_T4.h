@@ -69,7 +69,7 @@ class ACANSecondaryFilter {
 
 class ACANFDFilter {
   public: uint32_t mFilterMask ;
-  public: uint32_t mAcceptanceFilter ;
+  public: uint32_t mAcceptanceMask ;
   public: ACANFDCallBackRoutine mCallBackRoutine ;
 
   public: ACANFDFilter (const ACANFDCallBackRoutine inCallBackRoutine = nullptr) ; // Receive any frame
