@@ -2,7 +2,25 @@
 
 // This demo runs on Teensy 4.x, using CAN1 in looppback mode: no external hardware required.
 // It shows how to define reception primary filters (up to 32)
-
+// This sketch sends 8192 frames :
+//   - 2048 standard data frames, with identifier 0 ... 2047
+//   - 2048 standard remote frames, with identifier 0 ... 2047
+//   - 2048 extended data frames, with identifier 0 ... 2047
+//   - 2048 extended remote frames, with identifier 0 ... 2047
+// Filter  0 handles standard   data frame with identifier == 0 (1 frame)
+// Filter  1 handles standard remote frame with identifier == 0 (1 frame)
+// Filter  2 handles extended   data frame with identifier == 0 (1 frame)
+// Filter  3 handles extended remote frame with identifier == 0 (1 frame)
+// Filter  4 handles standard   data frame with identifier == 1 (1 frame)
+// Filter  5 handles standard remote frame with identifier == 1 (1 frame)
+// Filter  6 handles extended   data frame with identifier == 1 (1 frame)
+// Filter  7 handles extended remote frame with identifier == 1 (1 frame)
+// Filter  8 handles standard   data frame with (identifier & 0x7FC) == 0x540 (4 frames, 0x540, 0x541, 0x542, 0x543)
+// Filter  9 handles standard remote frame with (identifier & 0x7FC) == 0x540 (4 frames, 0x540, 0x541, 0x542, 0x543)
+// Filter 10 handles extended   data frame with (identifier & 0x7FC) == 0x540 (4 frames, 0x540, 0x541, 0x542, 0x543)
+// Filter 11 handles extended remote frame with (identifier & 0x7FC) == 0x540 (4 frames, 0x540, 0x541, 0x542, 0x543)
+// ...
+// Filter 31 catches all other frames
 //-----------------------------------------------------------------
 
 #ifndef __IMXRT1062__
@@ -27,18 +45,18 @@ void setup () {
   settings.mLoopBackMode = true ; // Loop back mode
   settings.mSelfReceptionMode = true ; // Required for loop back mode
   const ACANPrimaryFilter primaryFilters [32] = {
-    ACANPrimaryFilter (kData,   kStandard, 0x00, handlePrimaryFilterReception), //  0
-    ACANPrimaryFilter (kRemote, kStandard, 0x00, handlePrimaryFilterReception), //  1
-    ACANPrimaryFilter (kData,   kExtended, 0x00, handlePrimaryFilterReception), //  2
-    ACANPrimaryFilter (kRemote, kExtended, 0x00, handlePrimaryFilterReception), //  3
-    ACANPrimaryFilter (kData,   kStandard, 0x01, handlePrimaryFilterReception), //  4
-    ACANPrimaryFilter (kRemote, kStandard, 0x01, handlePrimaryFilterReception), //  5
-    ACANPrimaryFilter (kData,   kExtended, 0x01, handlePrimaryFilterReception), //  6
-    ACANPrimaryFilter (kRemote, kExtended, 0x01, handlePrimaryFilterReception), //  7
-    ACANPrimaryFilter (kData,   kStandard, 0x02, handlePrimaryFilterReception), //  8
-    ACANPrimaryFilter (kRemote, kStandard, 0x02, handlePrimaryFilterReception), //  9
-    ACANPrimaryFilter (kData,   kExtended, 0x02, handlePrimaryFilterReception), // 10
-    ACANPrimaryFilter (kRemote, kExtended, 0x02, handlePrimaryFilterReception), // 11
+    ACANPrimaryFilter (kData,   kStandard, 0x00, handlePrimaryFilterReception), //  0, handles standard data frame with identifier == 0
+    ACANPrimaryFilter (kRemote, kStandard, 0x00, handlePrimaryFilterReception), //  1, handles standard remote frame with identifier == 0
+    ACANPrimaryFilter (kData,   kExtended, 0x00, handlePrimaryFilterReception), //  2, handles extended data frame with identifier == 0
+    ACANPrimaryFilter (kRemote, kExtended, 0x00, handlePrimaryFilterReception), //  3, handles extended remote frame with identifier == 0
+    ACANPrimaryFilter (kData,   kStandard, 0x01, handlePrimaryFilterReception), //  4, handles standard data frame with identifier == 1
+    ACANPrimaryFilter (kRemote, kStandard, 0x01, handlePrimaryFilterReception), //  5, handles standard remote frame with identifier == 1
+    ACANPrimaryFilter (kData,   kExtended, 0x01, handlePrimaryFilterReception), //  6, handles extended data frame with identifier == 1
+    ACANPrimaryFilter (kRemote, kExtended, 0x01, handlePrimaryFilterReception), //  7, handles extended remote frame with identifier == 1
+    ACANPrimaryFilter (kData,   kStandard, 0x7FC, 0x540, handlePrimaryFilterReception), //  8
+    ACANPrimaryFilter (kRemote, kStandard, 0x7FC, 0x540, handlePrimaryFilterReception), //  9
+    ACANPrimaryFilter (kData,   kExtended, 0x7FC, 0x540, handlePrimaryFilterReception), // 10
+    ACANPrimaryFilter (kRemote, kExtended, 0x7FC, 0x540, handlePrimaryFilterReception), // 11
     ACANPrimaryFilter (kData,   kStandard, 0x04, handlePrimaryFilterReception), // 12
     ACANPrimaryFilter (kRemote, kStandard, 0x04, handlePrimaryFilterReception), // 13
     ACANPrimaryFilter (kData,   kExtended, 0x04, handlePrimaryFilterReception), // 14
@@ -58,8 +76,7 @@ void setup () {
     ACANPrimaryFilter (kData,   kStandard, 0x40, handlePrimaryFilterReception), // 28
     ACANPrimaryFilter (kRemote, kStandard, 0x40, handlePrimaryFilterReception), // 29
     ACANPrimaryFilter (kData,   kExtended, 0x40, handlePrimaryFilterReception), // 30
-    ACANPrimaryFilter (handlePrimaryFilterReception) // 31, catch every other frame (8161)
- //   ACANPrimaryFilter (kRemote, kExtended, 0x40, handlePrimaryFilterReception), // 31
+    ACANPrimaryFilter (handlePrimaryFilterReception) // 31, catch every other frame (8149)
   } ;
   const uint32_t errorCode = ACAN_T4::can1.begin (settings, primaryFilters, 32) ;
   if (0 == errorCode) {

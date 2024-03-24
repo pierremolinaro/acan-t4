@@ -82,7 +82,6 @@ void setup () {
     ACANPrimaryFilter (kData,   kStandard, 1 <<  6, handleFilterReception), // 28
     ACANPrimaryFilter (kRemote, kStandard, 1 <<  6, handleFilterReception), // 29
     ACANPrimaryFilter (kData,   kExtended, 1 <<  6, handleFilterReception), // 30
- //   ACANPrimaryFilter (handleFilterReception)
     ACANPrimaryFilter (kRemote, kExtended, 1 <<  6, handleFilterReception)  // 31
   } ;
   const ACANSecondaryFilter secondaryFilters [SECONDARY_FILTER_COUNT] = {

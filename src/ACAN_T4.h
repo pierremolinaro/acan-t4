@@ -17,8 +17,7 @@
 
 #include <ACAN_T4_Settings.h>
 #include <ACAN_T4FD_Settings.h>
-#include <CANMessage.h>
-#include <CANFDMessage.h>
+#include <ACAN_T4_CANFDMessage.h>
 
 //--------------------------------------------------------------------------------------------------
 
@@ -145,7 +144,7 @@ class ACAN_T4 {
   public: static const uint32_t kNoReservedMBForSendingRemoteFrame = 1 << 2 ;
   public: static const uint32_t kMessageLengthExceedsPayload = 1 << 3 ;
   public: static const uint32_t kFlexCANinCAN20BMode = 1 << 4 ;
-  public: static const uint32_t kFlexCANinCANFDBMode = 1 << 5 ;
+  public: static const uint32_t kFlexCANinCANFDMode = 1 << 5 ;
 
 //--- Receiving messages
   public: inline bool available (void)   const { return (!mCANFD) && (mReceiveBufferCount > 0) ; }

@@ -619,7 +619,7 @@ bool ACAN_T4::tryToSend (const CANMessage & inMessage) {
 uint32_t ACAN_T4::tryToSendReturnStatus (const CANMessage & inMessage) {
   uint32_t sendStatus = 0 ;
   if (mCANFD) {
-    sendStatus = kFlexCANinCANFDBMode ;
+    sendStatus = kFlexCANinCANFDMode ;
   }else if ((mGlobalStatus & kGlobalStatusInitError) == 0) {
     if (inMessage.rtr) { // Remote
       sendStatus = tryToSendRemoteFrame (inMessage) ;
